@@ -1,59 +1,71 @@
 package com.example.labproject
 
+import android.content.Intent
+import android.content.IntentFilter
+import android.graphics.Color
 import android.os.Bundle
+import android.provider.Settings
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
+import android.widget.TextView
 
-// TODO: Rename parameter arguments, choose names that match
-// the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-private const val ARG_PARAM1 = "param1"
-private const val ARG_PARAM2 = "param2"
 
-/**
- * A simple [Fragment] subclass.
- * Use the [BroadcastFragment.newInstance] factory method to
- * create an instance of this fragment.
- */
-class BroadcastFragment : Fragment() {
-    // TODO: Rename and change types of parameters
-    private var param1: String? = null
-    private var param2: String? = null
+class BroadcastFragment : Fragment(), AirplaneModeReceiver.AirplaneModeListener {
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        arguments?.let {
-            param1 = it.getString(ARG_PARAM1)
-            param2 = it.getString(ARG_PARAM2)
-        }
-    }
+    private lateinit var tvAirplaneStatus: TextView
+    private val airplaneModeReceiver = AirplaneModeReceiver()
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
+        inflater: LayoutInflater,
+        container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        // Inflate the layout for this fragment
         return inflater.inflate(R.layout.fragment_broadcast, container, false)
     }
 
-    companion object {
-        /**
-         * Use this factory method to create a new instance of
-         * this fragment using the provided parameters.
-         *
-         * @param param1 Parameter 1.
-         * @param param2 Parameter 2.
-         * @return A new instance of fragment BroadcastFragment.
-         */
-        // TODO: Rename and change types and number of parameters
-        @JvmStatic
-        fun newInstance(param1: String, param2: String) =
-            BroadcastFragment().apply {
-                arguments = Bundle().apply {
-                    putString(ARG_PARAM1, param1)
-                    putString(ARG_PARAM2, param2)
-                }
-            }
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        tvAirplaneStatus = view.findViewById(R.id.tvAirplaneStatus)
+
+        val isAirplaneModeOn = Settings.Global.getInt(
+            context?.contentResolver,
+            Settings.Global.AIRPLANE_MODE_ON, 0
+        ) != 0
+
+        updateStatus(isAirplaneModeOn)
+
+        airplaneModeReceiver.listener = this
+    }
+
+    override fun onResume() {
+        super.onResume()
+        context?.registerReceiver(
+            airplaneModeReceiver,
+            IntentFilter(Intent.ACTION_AIRPLANE_MODE_CHANGED)
+        )
+    }
+
+    override fun onPause() {
+        super.onPause()
+        context?.unregisterReceiver(airplaneModeReceiver)
+    }
+
+    override fun onAirplaneModeChanged(isEnabled: Boolean) {
+        updateStatus(isEnabled)
+    }
+
+    private fun updateStatus(isEnabled: Boolean) {
+        view?.findViewById<ImageView>(R.id.ivAirplaneMode)?.apply {
+            setImageResource(if (isEnabled) R.drawable.ic_airplane_mode_on else R.drawable.ic_airplane_mode_off)
+        }
+        val status = if (isEnabled) "ON" else "OFF"
+        val color = if (isEnabled) Color.RED else Color.GREEN
+
+        tvAirplaneStatus.text = "Airplane Mode: $status"
+        tvAirplaneStatus.setTextColor(color)
     }
 }
