@@ -1,14 +1,105 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".ServiceFragment">
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="16dp">
 
-    <!-- TODO: Update blank fragment layout -->
     <TextView
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:text="@string/hello_blank_fragment" />
+        android:layout_height="wrap_content"
+        android:text="Dynamic Music Player"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:layout_marginBottom="8dp"/>
 
-</FrameLayout>
+    <TextView
+        android:id="@+id/tvTrackCount"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Loading tracks..."
+        android:textSize="14sp"
+        android:gravity="center"
+        android:layout_marginBottom="8dp"/>
+
+    <ImageView
+        android:layout_width="120dp"
+        android:layout_height="120dp"
+        android:src="@drawable/ic_music_note"
+        android:layout_marginBottom="16dp"/>
+
+    <TextView
+        android:id="@+id/tvCurrentTrack"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="No track playing"
+        android:textSize="16sp"
+        android:gravity="center"
+        android:layout_marginBottom="8dp"/>
+
+    <ProgressBar
+        android:id="@+id/progressTrack"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:max="1"
+        android:progress="0"
+        android:layout_marginBottom="24dp"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_marginBottom="24dp">
+
+        <Button
+            android:id="@+id/btnPreviousTrack"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Previous"
+            android:drawableTop="@drawable/ic_previous"
+            android:padding="8dp"
+            android:enabled="false"/>
+
+        <Button
+            android:id="@+id/btnStartMusic"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Play"
+            android:drawableTop="@drawable/ic_play"
+            android:padding="8dp"
+            android:enabled="false"/>
+
+
+        <Button
+            android:id="@+id/btnNextTrack"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Next"
+            android:drawableTop="@drawable/ic_next"
+            android:padding="8dp"
+            android:enabled="false"/>
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center">
+
+        <Button
+            android:id="@+id/btnRefreshMusic"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Refresh"
+            android:drawableStart="@drawable/ic_refresh"
+            android:paddingStart="16dp"/>
+    </LinearLayout>
+</LinearLayout>
