@@ -1,4 +1,4 @@
-package com.example.labproject
+package com.example.labproject.ui.fragments
 
 import android.content.Intent
 import android.content.IntentFilter
@@ -11,6 +11,8 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
+import com.example.labproject.broadcasts.AirplaneModeReceiver
+import com.example.labproject.R
 
 
 class BroadcastFragment : Fragment(), AirplaneModeReceiver.AirplaneModeListener {

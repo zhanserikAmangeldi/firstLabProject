@@ -1,4 +1,4 @@
-package com.example.labproject
+package com.example.labproject.ui.fragments
 
 import android.Manifest
 import android.annotation.SuppressLint
@@ -8,7 +8,6 @@ import android.content.pm.PackageManager
 import android.icu.util.Calendar
 import android.os.Bundle
 import android.provider.CalendarContract
-import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
@@ -19,8 +18,10 @@ import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.example.labproject.adapters.CalendarAdapter
+import com.example.labproject.models.CalendarEvent
+import com.example.labproject.R
 import java.text.SimpleDateFormat
-import java.util.Date
 import java.util.Locale
 
 class ContentProviderFragment : Fragment() {

@@ -1,11 +1,9 @@
-package com.example.labproject
+package com.example.labproject.ui.fragments
 
-import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
-import android.provider.MediaStore
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
@@ -14,13 +12,11 @@ import android.widget.Button
 import android.widget.ImageView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.content.FileProvider
-import java.io.File
-import java.io.FileOutputStream
-import java.io.IOException
+import com.example.labproject.R
 
 
 class IntentsFragment : Fragment() {
+
     private lateinit var imageView: ImageView
     private var selectedImageUri: Uri? = null
 
@@ -30,6 +26,7 @@ class IntentsFragment : Fragment() {
             imageView.setImageURI(it)
         }
     }
+
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         val view = inflater.inflate(R.layout.fragment_intents, container, false)
         imageView = view.findViewById(R.id.imgPreview)
@@ -50,13 +47,31 @@ class IntentsFragment : Fragment() {
     }
 
     private fun shareImageToInstagramStories(imageUri: Uri) {
+        val intent = Intent("com.instagram.share.ADD_TO_STORY").apply {
+            setDataAndType(imageUri, "image/*")
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            setPackage("com.instagram.android")
+        }
 
-        val backgroundAssetUri = imageUri.toString()
-        val intent = Intent("com.instagram.share.ADD_TO_STORY")
-        intent.setDataAndType(Uri.parse(backgroundAssetUri), "image/*")
-        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        activity?.grantUriPermission("com.instagram.android", imageUri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        activity?.grantUriPermission(
+            "com.instagram.android",
+            imageUri,
+            Intent.FLAG_GRANT_READ_URI_PERMISSION
+        )
 
-        activity?.startActivityForResult(intent, 0)
+        if (isInstagramInstalled()) {
+            startActivity(intent)
+        } else {
+            Toast.makeText(requireContext(), "Instagram is not installed.", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun isInstagramInstalled(): Boolean {
+        return try {
+            requireContext().packageManager.getPackageInfo("com.instagram.android", 0)
+            true
+        } catch (e: PackageManager.NameNotFoundException) {
+            false
+        }
     }
 }

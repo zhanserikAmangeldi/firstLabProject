@@ -1,4 +1,4 @@
-package com.example.labproject
+package com.example.labproject.ui.fragments
 
 import android.os.Bundle
 import androidx.fragment.app.Fragment
@@ -7,6 +7,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import androidx.navigation.fragment.findNavController
+import com.example.labproject.R
 
 class MainFragment : Fragment() {
     override fun onCreateView(
@@ -20,7 +21,6 @@ class MainFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Setup navigation to feature fragments
         view.findViewById<Button>(R.id.btnIntents).setOnClickListener {
             findNavController().navigate(R.id.action_mainFragment_to_intentsFragment)
         }

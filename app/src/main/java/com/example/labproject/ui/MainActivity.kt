@@ -1,14 +1,11 @@
-package com.example.labproject
+package com.example.labproject.ui
 
 import android.os.Build
 import android.os.Bundle
 import android.Manifest
-import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.navigation.fragment.NavHostFragment
-import androidx.navigation.ui.setupActionBarWithNavController
+import com.example.labproject.R
 
 class MainActivity : AppCompatActivity() {
 

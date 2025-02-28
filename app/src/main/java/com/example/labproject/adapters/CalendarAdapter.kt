@@ -1,4 +1,4 @@
-package com.example.labproject
+package com.example.labproject.adapters
 
 import android.annotation.SuppressLint
 import android.icu.text.SimpleDateFormat
@@ -7,6 +7,8 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import com.example.labproject.R
+import com.example.labproject.models.CalendarEvent
 import java.util.Date
 import java.util.Locale
 

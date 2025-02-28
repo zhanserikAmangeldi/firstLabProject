@@ -1,4 +1,4 @@
-package com.example.labproject
+package com.example.labproject.models
 
 data class CalendarEvent(
     val title: String,

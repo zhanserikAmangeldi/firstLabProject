@@ -1,4 +1,4 @@
-package com.example.labproject
+package com.example.labproject.broadcasts
 
 import android.content.BroadcastReceiver
 import android.content.Context

@@ -1,4 +1,4 @@
-package com.example.labproject
+package com.example.labproject.ui.fragments
 
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -17,6 +17,8 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.media3.common.util.Log
 import androidx.media3.common.util.UnstableApi
+import com.example.labproject.services.MusicService
+import com.example.labproject.R
 
 class ServiceFragment : Fragment() {
 
@@ -101,7 +103,6 @@ class ServiceFragment : Fragment() {
 
                         if (trackCount == 0) {
                             tvCurrentTrack.text = "No music files found"
-                            Toast.makeText(context, "Add music files to the 'music' folder in assets", Toast.LENGTH_LONG).show()
                             progressTrack.progress = 0
                             isPlaying = false
                             updatePlayPauseButton(isPlaying)
@@ -140,6 +141,7 @@ class ServiceFragment : Fragment() {
     }
 
 
+    // Function to manage the registration and unregistration of receivers based on the provided flag
     private fun manageReceivers(register: Boolean) {
         val localContext = context ?: return
 

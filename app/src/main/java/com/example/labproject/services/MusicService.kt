@@ -1,4 +1,4 @@
-package com.example.labproject
+package com.example.labproject.services
 
 import android.annotation.SuppressLint
 import android.app.Notification
@@ -9,62 +9,31 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.media.MediaPlayer
-import android.os.Build
 import android.os.IBinder
 import android.widget.Toast
 import androidx.annotation.OptIn
 import androidx.core.app.NotificationCompat
 import androidx.media3.common.util.Log
 import androidx.media3.common.util.UnstableApi
+import com.example.labproject.R
 import java.io.IOException
 import java.util.Locale
+import com.example.labproject.models.MusicTrack
 
 class MusicService : Service() {
-    private var mediaPlayer: MediaPlayer? = null
+
     private val NOTIFICATION_ID = 101
     private val CHANNEL_ID = "music_channel"
-
     private val MUSIC_DIRECTORY = "music"
 
+    private var mediaPlayer: MediaPlayer? = null
     private var musicTracks = mutableListOf<MusicTrack>()
-
     private var currentTrackIndex = 0
 
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
         loadMusicFiles()
-    }
-
-    @OptIn(UnstableApi::class)
-    private fun loadMusicFiles() {
-        try {
-            musicTracks.clear()
-
-            val files = assets.list(MUSIC_DIRECTORY) ?: return
-
-            files.filter {
-                it.endsWith(".mp3") || it.endsWith(".wav") ||
-                        it.endsWith(".ogg") || it.endsWith(".aac") ||
-                        it.endsWith(".flac")
-            }.forEach { filename ->
-                val title = filename
-                    .substringBeforeLast('.')
-                    .replace("_", " ")
-                    .split(" ")
-                    .joinToString(" ") { word ->
-                        word.replaceFirstChar {
-                            if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString()
-                        }
-                    }
-
-                musicTracks.add(MusicTrack(title, "$MUSIC_DIRECTORY/$filename"))
-            }
-
-            Log.d("MusicService", "Loaded ${musicTracks.size} music tracks")
-        } catch (e: IOException) {
-            Log.e("MusicService", "Error loading music files", e)
-        }
     }
 
     @SuppressLint("ForegroundServiceType")
@@ -96,6 +65,46 @@ class MusicService : Service() {
             }
         }
         return START_NOT_STICKY
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        mediaPlayer?.release()
+        mediaPlayer = null
+    }
+
+    override fun onBind(intent: Intent?): IBinder? = null
+
+
+    @OptIn(UnstableApi::class)
+    private fun loadMusicFiles() {
+        try {
+            musicTracks.clear()
+
+            val files = assets.list(MUSIC_DIRECTORY) ?: return
+
+            files.filter {
+                it.endsWith(".mp3") || it.endsWith(".wav") ||
+                        it.endsWith(".ogg") || it.endsWith(".aac") ||
+                        it.endsWith(".flac")
+            }.forEach { filename ->
+                val title = filename
+                    .substringBeforeLast('.')
+                    .replace("_", " ")
+                    .split(" ")
+                    .joinToString(" ") { word ->
+                        word.replaceFirstChar {
+                            if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString()
+                        }
+                    }
+
+                musicTracks.add(MusicTrack(title, "$MUSIC_DIRECTORY/$filename"))
+            }
+
+            Log.d("MusicService", "Loaded ${musicTracks.size} music tracks")
+        } catch (e: IOException) {
+            Log.e("MusicService", "Error loading music files", e)
+        }
     }
 
     private fun createNotificationChannel() {
@@ -283,13 +292,4 @@ class MusicService : Service() {
         }
         sendBroadcast(intent)
     }
-
-    override fun onBind(intent: Intent?): IBinder? = null
-
-    override fun onDestroy() {
-        super.onDestroy()
-        mediaPlayer?.release()
-        mediaPlayer = null
-    }
-    data class MusicTrack(val title: String, val filePath: String)
 }
