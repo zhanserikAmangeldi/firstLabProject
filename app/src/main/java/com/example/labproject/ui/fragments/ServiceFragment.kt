@@ -5,6 +5,8 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -12,25 +14,26 @@ import android.widget.Button
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
-import androidx.annotation.OptIn
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
-import androidx.media3.common.util.Log
-import androidx.media3.common.util.UnstableApi
-import com.example.labproject.services.MusicService
 import com.example.labproject.R
+import com.example.labproject.services.MusicService
 
 class ServiceFragment : Fragment() {
 
-    private lateinit var tvCurrentTrack: TextView
-    private lateinit var progressTrack: ProgressBar
-    private lateinit var tvTrackCount: TextView
-    private lateinit var trackReceiver: BroadcastReceiver
-    private lateinit var trackListReceiver: BroadcastReceiver
-    private lateinit var btnStartMusic: Button
-    private lateinit var btnPreviousTrack: Button
-    private lateinit var btnNextTrack: Button
+    private lateinit var currentTrackTextView: TextView
+    private lateinit var progressTrackBar: ProgressBar
+    private lateinit var trackCountTextView: TextView
+    private lateinit var trackUpdateReceiver: BroadcastReceiver
+    private lateinit var trackListUpdateReceiver: BroadcastReceiver
+    private lateinit var progressUpdateReceiver: BroadcastReceiver
+    private lateinit var playPauseButton: Button
+    private lateinit var previousButton: Button
+    private lateinit var nextButton: Button
+    private lateinit var refreshButton: Button
+
     private var isPlaying: Boolean = false
+    private val handler = Handler(Looper.getMainLooper())
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -43,27 +46,28 @@ class ServiceFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        tvCurrentTrack = view.findViewById(R.id.tvCurrentTrack)
-        progressTrack = view.findViewById(R.id.progressTrack)
-        tvTrackCount = view.findViewById(R.id.tvTrackCount)
-        btnStartMusic = view.findViewById(R.id.btnStartMusic)
-        btnPreviousTrack = view.findViewById(R.id.btnPreviousTrack)
-        btnNextTrack = view.findViewById(R.id.btnNextTrack)
+        currentTrackTextView = view.findViewById(R.id.tvCurrentTrack)
+        progressTrackBar = view.findViewById(R.id.progressTrack)
+        trackCountTextView = view.findViewById(R.id.tvTrackCount)
+        playPauseButton = view.findViewById(R.id.btnStartMusic)
+        previousButton = view.findViewById(R.id.btnPreviousTrack)
+        nextButton = view.findViewById(R.id.btnNextTrack)
+        refreshButton = view.findViewById(R.id.btnRefreshMusic)
 
 
-        btnStartMusic.setOnClickListener {
+        playPauseButton.setOnClickListener {
             startMusicService(if (isPlaying) "PAUSE" else "PLAY")
         }
 
-        btnPreviousTrack.setOnClickListener {
+        previousButton.setOnClickListener {
             startMusicService("PREVIOUS")
         }
 
-        btnNextTrack.setOnClickListener {
+        nextButton.setOnClickListener {
             startMusicService("NEXT")
         }
 
-        view.findViewById<Button>(R.id.btnRefreshMusic)?.setOnClickListener {
+        refreshButton.setOnClickListener {
             startMusicService("REFRESH")
         }
 
@@ -73,42 +77,46 @@ class ServiceFragment : Fragment() {
     }
 
     private fun setupReceivers() {
-        trackReceiver = object : BroadcastReceiver() {
+        trackUpdateReceiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
-                if (intent?.action == "TRACK_UPDATED") {
-                    activity?.runOnUiThread {
-                        val trackTitle = intent.getStringExtra("track_title") ?: "Unknown Track"
-                        val trackIndex = intent.getIntExtra("track_index", 0)
-                        val totalTracks = intent.getIntExtra("total_tracks", 0)
-                        isPlaying = intent.getBooleanExtra("is_playing", false)
+                if (intent?.action == MusicService.ACTION_TRACK_UPDATED) {
+                    val trackTitle = intent.getStringExtra("track_title") ?: "Unknown Track"
+                    val trackIndex = intent.getIntExtra("track_index", 0)
+                    val totalTracks = intent.getIntExtra("total_tracks", 0)
+                    isPlaying = intent.getBooleanExtra("is_playing", false)
 
-                        updatePlayPauseButton(isPlaying)
-
-                        tvCurrentTrack.text = "Now Playing: $trackTitle"
-                        progressTrack.max = totalTracks
-                        progressTrack.progress = trackIndex + 1
-                    }
+                    updatePlayPauseButton(isPlaying)
+                    currentTrackTextView.text = "Now Playing: $trackTitle"
+                    trackCountTextView.text = if(totalTracks > 0) "Track ${trackIndex+1} of $totalTracks" else ""
                 }
             }
         }
 
-        trackListReceiver = object : BroadcastReceiver() {
+        trackListUpdateReceiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
-                if (intent?.action == "TRACK_LIST_UPDATED") {
-                    activity?.runOnUiThread {
-                        val trackCount = intent.getIntExtra("track_count", 0)
+                if (intent?.action == MusicService.ACTION_TRACK_LIST_UPDATED) {
+                    val trackCount = intent.getIntExtra("track_count", 0)
+                    trackCountTextView.text = "$trackCount tracks found"
 
+                    if (trackCount == 0) {
+                        currentTrackTextView.text = "No music files found"
+                        progressTrackBar.progress = 0
+                        isPlaying = false
+                        updatePlayPauseButton(isPlaying)
+                    }
+                    updateButtonEnabledState(trackCount > 0)
+                }
+            }
+        }
 
-                        tvTrackCount.text = "$trackCount tracks found"
-
-                        if (trackCount == 0) {
-                            tvCurrentTrack.text = "No music files found"
-                            progressTrack.progress = 0
-                            isPlaying = false
-                            updatePlayPauseButton(isPlaying)
-                        }
-
-                        updateButtonEnabledState(trackCount > 0)
+        progressUpdateReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                if (intent?.action == MusicService.ACTION_TRACK_PROGRESS_UPDATED) {
+                    val position = intent.getIntExtra("current_position", 0)
+                    val duration = intent.getIntExtra("duration", 0)
+                    if (duration > 0) {
+                        progressTrackBar.max = duration
+                        progressTrackBar.progress = position
                     }
                 }
             }
@@ -116,7 +124,7 @@ class ServiceFragment : Fragment() {
     }
 
     private fun updatePlayPauseButton(isPlaying: Boolean) {
-        btnStartMusic.apply {
+        playPauseButton.apply {
             text = if (isPlaying) "Pause" else "Play"
             val icon = if (isPlaying) R.drawable.ic_stop else R.drawable.ic_play
             setCompoundDrawablesWithIntrinsicBounds(0, icon, 0, 0)
@@ -124,47 +132,39 @@ class ServiceFragment : Fragment() {
     }
 
     private fun updateButtonEnabledState(enabled: Boolean) {
-        btnStartMusic.isEnabled = enabled
-        btnPreviousTrack.isEnabled = enabled
-        btnNextTrack.isEnabled = enabled
+        playPauseButton.isEnabled = enabled
+        previousButton.isEnabled = enabled
+        nextButton.isEnabled = enabled
     }
-
     override fun onResume() {
         super.onResume()
         manageReceivers(true)
     }
 
-    @OptIn(UnstableApi::class)
     override fun onPause() {
         super.onPause()
         manageReceivers(false)
     }
 
 
-    // Function to manage the registration and unregistration of receivers based on the provided flag
     private fun manageReceivers(register: Boolean) {
         val localContext = context ?: return
 
         try {
             if (register) {
-                ContextCompat.registerReceiver(
-                    localContext,
-                    trackReceiver,
-                    IntentFilter("TRACK_UPDATED"),
-                    ContextCompat.RECEIVER_NOT_EXPORTED
-                )
-                ContextCompat.registerReceiver(
-                    localContext,
-                    trackListReceiver,
-                    IntentFilter("TRACK_LIST_UPDATED"),
-                    ContextCompat.RECEIVER_NOT_EXPORTED
-                )
+                ContextCompat.registerReceiver(localContext, trackUpdateReceiver,
+                    IntentFilter(MusicService.ACTION_TRACK_UPDATED), ContextCompat.RECEIVER_NOT_EXPORTED)
+                ContextCompat.registerReceiver(localContext, trackListUpdateReceiver,
+                    IntentFilter(MusicService.ACTION_TRACK_LIST_UPDATED), ContextCompat.RECEIVER_NOT_EXPORTED)
+                ContextCompat.registerReceiver(localContext, progressUpdateReceiver,
+                    IntentFilter(MusicService.ACTION_TRACK_PROGRESS_UPDATED), ContextCompat.RECEIVER_NOT_EXPORTED)
             } else {
-                localContext.unregisterReceiver(trackReceiver)
-                localContext.unregisterReceiver(trackListReceiver)
+                localContext.unregisterReceiver(trackUpdateReceiver)
+                localContext.unregisterReceiver(trackListUpdateReceiver)
+                localContext.unregisterReceiver(progressUpdateReceiver)
             }
         } catch (e: IllegalArgumentException) {
-            Log.w("ServiceFragment", "Receiver was not registered or already unregistered")
+            android.util.Log.w("ServiceFragment", "Receiver was not registered or already unregistered")
         }
     }
 

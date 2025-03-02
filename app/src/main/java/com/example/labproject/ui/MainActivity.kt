@@ -18,7 +18,9 @@ class MainActivity : AppCompatActivity() {
             requestPermissions(
                 arrayOf(
                     Manifest.permission.READ_MEDIA_IMAGES,
-                    Manifest.permission.READ_CALENDAR
+                    Manifest.permission.READ_CALENDAR,
+                    Manifest.permission.POST_NOTIFICATIONS,
+                    Manifest.permission.FOREGROUND_SERVICE,
                 ),
                 100
             )
@@ -26,7 +28,7 @@ class MainActivity : AppCompatActivity() {
             requestPermissions(
                 arrayOf(
                     Manifest.permission.READ_EXTERNAL_STORAGE,
-                    Manifest.permission.READ_CALENDAR
+                    Manifest.permission.READ_CALENDAR,
                 ),
                 100
             )

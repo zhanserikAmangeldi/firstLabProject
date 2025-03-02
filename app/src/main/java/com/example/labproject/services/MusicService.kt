@@ -9,59 +9,77 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.media.MediaPlayer
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
+import android.util.Log
 import android.widget.Toast
-import androidx.annotation.OptIn
 import androidx.core.app.NotificationCompat
-import androidx.media3.common.util.Log
-import androidx.media3.common.util.UnstableApi
 import com.example.labproject.R
-import java.io.IOException
-import java.util.Locale
 import com.example.labproject.models.MusicTrack
+import com.example.labproject.ui.fragments.ServiceFragment
+import java.io.IOException
 
 class MusicService : Service() {
 
-    private val NOTIFICATION_ID = 101
+    private val NOTIFICATION_ID = 1
     private val CHANNEL_ID = "music_channel"
     private val MUSIC_DIRECTORY = "music"
 
     private var mediaPlayer: MediaPlayer? = null
     private var musicTracks = mutableListOf<MusicTrack>()
     private var currentTrackIndex = 0
+    private var isPlaying = false
+
+    private val progressHandler = Handler(Looper.getMainLooper())
+    private val updateProgressTask = object : Runnable {
+        override fun run() {
+            sendProgressUpdateBroadcast()
+            progressHandler.postDelayed(this, 250)
+        }
+    }
+
+    companion object {
+        const val ACTION_TRACK_UPDATED = "com.example.labproject.ACTION_TRACK_UPDATED"
+        const val ACTION_TRACK_LIST_UPDATED = "com.example.labproject.ACTION_TRACK_LIST_UPDATED"
+        const val ACTION_TRACK_PROGRESS_UPDATED = "com.example.labproject.ACTION_TRACK_PROGRESS_UPDATED"
+    }
 
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
         loadMusicFiles()
+        if (musicTracks.isNotEmpty()) {
+            prepareMediaPlayer()
+        }
     }
 
-    @SuppressLint("ForegroundServiceType")
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             "PLAY" -> {
-                if (mediaPlayer?.isPlaying != true) {
-                    playMusic()
-                }
+                if (isPlaying) pauseMusic() else playMusic()
             }
             "PAUSE" -> pauseMusic()
             "NEXT" -> nextTrack()
             "PREVIOUS" -> previousTrack()
             "REFRESH" -> {
+                val wasPlaying = isPlaying
                 loadMusicFiles()
-                val wasPlaying = mediaPlayer?.isPlaying ?: false
+                currentTrackIndex = 0
                 if (musicTracks.isNotEmpty()) {
-                    currentTrackIndex = 0;
                     prepareMediaPlayer()
-
+                    startForeground(NOTIFICATION_ID, getNotification())
                     if (wasPlaying) {
                         mediaPlayer?.start()
-                        startForeground(NOTIFICATION_ID, getNotification())
+                        startProgressUpdates()
+                        isPlaying = true
                     }
+                } else {
+                    stopForeground(STOP_FOREGROUND_REMOVE)
+                    stopSelf()
                 }
                 sendTrackUpdateBroadcast()
                 sendTrackListBroadcast()
-
             }
         }
         return START_NOT_STICKY
@@ -69,41 +87,33 @@ class MusicService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
+        stopProgressUpdates()
         mediaPlayer?.release()
         mediaPlayer = null
+        isPlaying = false
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
-
-    @OptIn(UnstableApi::class)
     private fun loadMusicFiles() {
         try {
             musicTracks.clear()
-
             val files = assets.list(MUSIC_DIRECTORY) ?: return
-
-            files.filter {
-                it.endsWith(".mp3") || it.endsWith(".wav") ||
-                        it.endsWith(".ogg") || it.endsWith(".aac") ||
-                        it.endsWith(".flac")
-            }.forEach { filename ->
-                val title = filename
-                    .substringBeforeLast('.')
+            files.filter { it.endsWith(".mp3") }.forEach { filename ->
+                val title = filename.substringBeforeLast(".")
                     .replace("_", " ")
                     .split(" ")
-                    .joinToString(" ") { word ->
-                        word.replaceFirstChar {
-                            if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString()
-                        }
-                    }
-
+                    .joinToString(" ") { it.replaceFirstChar(Char::titlecase) }
                 musicTracks.add(MusicTrack(title, "$MUSIC_DIRECTORY/$filename"))
             }
 
-            Log.d("MusicService", "Loaded ${musicTracks.size} music tracks")
+            if (musicTracks.isEmpty()) {
+                Log.d("MusicService", "No music files found in assets/$MUSIC_DIRECTORY")
+                Toast.makeText(this, "No music files found", Toast.LENGTH_SHORT).show()
+            }
         } catch (e: IOException) {
             Log.e("MusicService", "Error loading music files", e)
+            Toast.makeText(this, "Error loading music files", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -116,63 +126,33 @@ class MusicService : Service() {
             description = "Music Player Controls"
             setSound(null, null)
         }
-
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.createNotificationChannel(channel)
     }
 
     private fun getNotification(): Notification {
-        val flag =
-            PendingIntent.FLAG_IMMUTABLE
+        val flag = PendingIntent.FLAG_IMMUTABLE
+        val playIntent = Intent(this, MusicService::class.java).apply { action = "PLAY" }
+        val playPendingIntent = PendingIntent.getService(this, 0, playIntent, flag)
+        val previousIntent = Intent(this, MusicService::class.java).apply { action = "PREVIOUS" }
+        val previousPendingIntent = PendingIntent.getService(this, 3, previousIntent, flag)
+        val nextIntent = Intent(this, MusicService::class.java).apply { action = "NEXT" }
+        val nextPendingIntent = PendingIntent.getService(this, 4, nextIntent, flag)
 
-        val playIntent = Intent(this, MusicService::class.java).apply {
-            action = "PLAY"
-        }
-        val playPendingIntent = PendingIntent.getService(
-            this, 0, playIntent, flag
-        )
+        val currentTrack = musicTracks.getOrNull(currentTrackIndex) ?: MusicTrack("No tracks available", "")
 
-        val pauseIntent = Intent(this, MusicService::class.java).apply {
-            action = "PAUSE"
-        }
-        val pausePendingIntent = PendingIntent.getService(
-            this, 1, pauseIntent, flag
-        )
-        val previousIntent = Intent(this, MusicService::class.java).apply {
-            action = "PREVIOUS"
-        }
-        val previousPendingIntent = PendingIntent.getService(
-            this, 3, previousIntent, flag
-        )
-
-        val nextIntent = Intent(this, MusicService::class.java).apply {
-            action = "NEXT"
-        }
-        val nextPendingIntent = PendingIntent.getService(
-            this, 4, nextIntent, flag
-        )
-
-        val currentTrack = if (musicTracks.isNotEmpty() && currentTrackIndex < musicTracks.size) {
-            musicTracks[currentTrackIndex]
-        } else {
-            MusicTrack("No tracks available", "")
-        }
-
-        val isPlaying = mediaPlayer?.isPlaying ?: false
         val playPauseIcon = if (isPlaying) R.drawable.ic_stop else R.drawable.ic_play
         val playPauseText = if (isPlaying) "Pause" else "Play"
-        val playPauseAction = if (isPlaying) pausePendingIntent else playPendingIntent
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Now Playing")
-            .setContentText(currentTrack.title)
+            .setContentTitle(if (musicTracks.isNotEmpty()) "Now Playing" else "No Track")
+            .setContentText(if (musicTracks.isNotEmpty()) currentTrack.title else "No tracks in playlist")
             .setSmallIcon(R.drawable.ic_music_note)
             .addAction(R.drawable.ic_previous, "Previous", previousPendingIntent)
-            .addAction(playPauseIcon, playPauseText, playPauseAction)
+            .addAction(playPauseIcon, playPauseText, playPendingIntent)
             .addAction(R.drawable.ic_next, "Next", nextPendingIntent)
-            .setStyle(
-                androidx.media.app.NotificationCompat.MediaStyle()
-                    .setShowActionsInCompactView(0, 1, 2))
+            .setStyle(androidx.media.app.NotificationCompat.MediaStyle().setShowActionsInCompactView(0, 1, 2))
+            .setOngoing(isPlaying)
             .build()
     }
 
@@ -184,87 +164,67 @@ class MusicService : Service() {
         }
         if (mediaPlayer == null) {
             prepareMediaPlayer()
-        }
-
-        if (mediaPlayer?.isPlaying != true) {
-            mediaPlayer?.start()
             startForeground(NOTIFICATION_ID, getNotification())
         }
-        sendTrackUpdateBroadcast()
+        if (mediaPlayer?.isPlaying != true) {
+            mediaPlayer?.start()
+            startProgressUpdates()
+            isPlaying = true
+            updateNotification()
+            sendTrackUpdateBroadcast()
+        }
     }
 
     private fun pauseMusic() {
         mediaPlayer?.pause()
+        stopProgressUpdates()
+        isPlaying = false
         updateNotification()
+        stopForeground(STOP_FOREGROUND_DETACH)
         sendTrackUpdateBroadcast()
     }
 
-    @OptIn(UnstableApi::class)
     private fun prepareMediaPlayer() {
         if (musicTracks.isEmpty()) return
-
         mediaPlayer?.release()
         mediaPlayer = MediaPlayer()
-
         try {
             val currentTrack = musicTracks[currentTrackIndex]
             val assetFileDescriptor = assets.openFd(currentTrack.filePath)
-            mediaPlayer?.setDataSource(
-                assetFileDescriptor.fileDescriptor,
-                assetFileDescriptor.startOffset,
-                assetFileDescriptor.length
-            )
+            mediaPlayer?.setDataSource(assetFileDescriptor.fileDescriptor, assetFileDescriptor.startOffset, assetFileDescriptor.length)
             assetFileDescriptor.close()
             mediaPlayer?.prepare()
-            mediaPlayer?.setOnCompletionListener {
-                nextTrack()
-            }
+            mediaPlayer?.setOnCompletionListener { nextTrack() }
         } catch (e: IOException) {
             Log.e("MusicService", "Error preparing media player", e)
-            if(musicTracks.size > 1){
-                nextTrack()
-            }
-
+            Toast.makeText(this, "Error playing track: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+            if (musicTracks.size > 1) nextTrack() else stopSelf()
         }
     }
 
-
     private fun nextTrack() {
         if (musicTracks.isEmpty()) return
-
+        stopProgressUpdates()
         currentTrackIndex = (currentTrackIndex + 1) % musicTracks.size
-
-        val wasPlaying = mediaPlayer?.isPlaying ?: false
         prepareMediaPlayer()
-
-        if (wasPlaying) {
+        if (isPlaying) {
             mediaPlayer?.start()
-            startForeground(NOTIFICATION_ID, getNotification())
+            startProgressUpdates()
         }
-
         updateNotification()
-
         sendTrackUpdateBroadcast()
     }
 
     private fun previousTrack() {
         if (musicTracks.isEmpty()) return
-
-        currentTrackIndex = if (currentTrackIndex > 0)
-            currentTrackIndex - 1
-        else
-            musicTracks.size - 1
-
-        val wasPlaying = mediaPlayer?.isPlaying ?: false
+        stopProgressUpdates()
+        currentTrackIndex = if (currentTrackIndex > 0) currentTrackIndex - 1 else musicTracks.size - 1
         prepareMediaPlayer()
-
-        if (wasPlaying) {
+        if (isPlaying) {
             mediaPlayer?.start()
-            startForeground(NOTIFICATION_ID, getNotification())
+            startProgressUpdates()
         }
-
         updateNotification()
-
         sendTrackUpdateBroadcast()
     }
 
@@ -275,21 +235,39 @@ class MusicService : Service() {
 
     private fun sendTrackUpdateBroadcast() {
         if (musicTracks.isEmpty()) return
-
-        val intent = Intent("TRACK_UPDATED").apply {
+        val intent = Intent(ACTION_TRACK_UPDATED).apply {
             putExtra("track_title", musicTracks[currentTrackIndex].title)
             putExtra("track_index", currentTrackIndex)
             putExtra("total_tracks", musicTracks.size)
-            putExtra("is_playing", mediaPlayer?.isPlaying ?: false)
+            putExtra("is_playing", isPlaying)
         }
         sendBroadcast(intent)
     }
 
+
     private fun sendTrackListBroadcast() {
-        val intent = Intent("TRACK_LIST_UPDATED").apply {
+        val intent = Intent(ACTION_TRACK_LIST_UPDATED).apply {
             putExtra("track_count", musicTracks.size)
             putExtra("track_titles", musicTracks.map { it.title }.toTypedArray())
         }
         sendBroadcast(intent)
+    }
+
+    private fun sendProgressUpdateBroadcast() {
+        if (mediaPlayer != null) {
+            val intent = Intent(ACTION_TRACK_PROGRESS_UPDATED).apply {
+                putExtra("current_position", mediaPlayer!!.currentPosition)
+                putExtra("duration", mediaPlayer!!.duration)
+            }
+            sendBroadcast(intent)
+        }
+    }
+
+    private fun startProgressUpdates() {
+        progressHandler.post(updateProgressTask)
+    }
+
+    private fun stopProgressUpdates() {
+        progressHandler.removeCallbacks(updateProgressTask)
     }
 }
