@@ -17,7 +17,6 @@ import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import com.example.labproject.R
 import com.example.labproject.models.MusicTrack
-import com.example.labproject.ui.fragments.ServiceFragment
 import java.io.IOException
 
 class MusicService : Service() {
@@ -40,9 +39,9 @@ class MusicService : Service() {
     }
 
     companion object {
-        const val ACTION_TRACK_UPDATED = "com.example.labproject.ACTION_TRACK_UPDATED"
-        const val ACTION_TRACK_LIST_UPDATED = "com.example.labproject.ACTION_TRACK_LIST_UPDATED"
-        const val ACTION_TRACK_PROGRESS_UPDATED = "com.example.labproject.ACTION_TRACK_PROGRESS_UPDATED"
+        const val ACTION_TRACK_UPDATED = "ACTION_TRACK_UPDATED"
+        const val ACTION_TRACK_LIST_UPDATED = "ACTION_TRACK_LIST_UPDATED"
+        const val ACTION_TRACK_PROGRESS_UPDATED = "ACTION_TRACK_PROGRESS_UPDATED"
     }
 
     override fun onCreate() {
@@ -236,29 +235,34 @@ class MusicService : Service() {
     private fun sendTrackUpdateBroadcast() {
         if (musicTracks.isEmpty()) return
         val intent = Intent(ACTION_TRACK_UPDATED).apply {
+            action = ACTION_TRACK_UPDATED
             putExtra("track_title", musicTracks[currentTrackIndex].title)
             putExtra("track_index", currentTrackIndex)
             putExtra("total_tracks", musicTracks.size)
             putExtra("is_playing", isPlaying)
         }
+        intent.setPackage(packageName)
         sendBroadcast(intent)
     }
 
-
     private fun sendTrackListBroadcast() {
-        val intent = Intent(ACTION_TRACK_LIST_UPDATED).apply {
+        val intent = Intent(ACTION_TRACK_UPDATED).apply {
+            action = ACTION_TRACK_LIST_UPDATED
             putExtra("track_count", musicTracks.size)
             putExtra("track_titles", musicTracks.map { it.title }.toTypedArray())
         }
+        intent.setPackage(packageName)
         sendBroadcast(intent)
     }
 
     private fun sendProgressUpdateBroadcast() {
         if (mediaPlayer != null) {
-            val intent = Intent(ACTION_TRACK_PROGRESS_UPDATED).apply {
+            val intent = Intent(ACTION_TRACK_UPDATED).apply {
+                action = ACTION_TRACK_PROGRESS_UPDATED
                 putExtra("current_position", mediaPlayer!!.currentPosition)
                 putExtra("duration", mediaPlayer!!.duration)
             }
+            intent.setPackage(packageName)
             sendBroadcast(intent)
         }
     }
