@@ -28,6 +28,9 @@ git clone https://github.com/zhanserikAmangeldi/firstLabProject.git
 
 ## Demonstration Video
 
+You can watch it on youtube: https://youtu.be/C6-fJ9_1VYI
 
+## Note:
 
-## Thank you for attention!
+You can use my Facebook app ID, but it will be better if you change for your own in strings.
+
