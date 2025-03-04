@@ -40,6 +40,9 @@ dependencies {
     // Media
     implementation("androidx.media:media:1.6.0")
 
+    implementation("com.facebook.android:facebook-android-sdk:latest.release")
+    implementation("com.facebook.android:facebook-share:latest.release")
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)

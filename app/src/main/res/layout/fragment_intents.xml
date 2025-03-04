@@ -1,38 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="16dp">
-
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Instagram Story Sharing"
-        android:textSize="20sp"
-        android:textStyle="bold"
-        android:gravity="center"
-        android:layout_marginBottom="16dp"/>
+    android:padding="16dp"
+    tools:context=".ui.fragments.IntentsFragment">
 
     <ImageView
         android:id="@+id/imgPreview"
         android:layout_width="match_parent"
         android:layout_height="300dp"
-        android:scaleType="centerCrop"
+        android:layout_marginBottom="16dp"
         android:background="#EEEEEE"
-        android:layout_marginBottom="16dp"/>
+        android:scaleType="centerInside"
+        android:contentDescription="Preview Image" />
 
     <Button
         android:id="@+id/btnPickImage"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Pick Image from Gallery"
-        android:layout_marginBottom="8dp"/>
+        android:layout_marginBottom="8dp"
+        android:text="Pick Image" />
 
     <Button
         android:id="@+id/btnShareInstagram"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Share to Instagram Stories"/>
+        android:layout_marginBottom="8dp"
+        android:text="Share to Instagram Stories" />
 
 </LinearLayout>
