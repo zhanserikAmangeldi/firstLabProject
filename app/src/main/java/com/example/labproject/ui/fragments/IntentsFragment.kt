@@ -71,6 +71,9 @@ class IntentsFragment : Fragment() {
             val intent = Intent("com.instagram.share.ADD_TO_STORY").apply {
                 setDataAndType(contentUri, "image/*")
                 flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+
+                putExtra("source_application", getString(R.string.facebook_app_id))
+
                 putExtra("source_application", requireContext().packageName)
                 putExtra("top_background_color", "#33FF33")
                 putExtra("bottom_background_color", "#FF00FF")
